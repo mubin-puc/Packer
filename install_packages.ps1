@@ -14,8 +14,8 @@ Write-Host "Installing google chrome..."
 Start-Process -Wait -FilePath "$env:SystemRoot\System32\msiexec.exe" -ArgumentList "/i https://dl.google.com/edgedl/chrome/install/GoogleChromeStandaloneEnterprise64.msi /quiet /passive /qn"
 
 #Disable Windows Feature 
-Disable-WindowsOptionalFeature -FeatureName Internet-Explorer-Optional-amd64 –Online -NoRestart
+Disable-WindowsOptionalFeature -FeatureName Internet-Explorer-Optional-amd64 -Online -NoRestart
 
 # Install .NET Framework 3.5 on Windows Server
-Write-Host "Installing .NET Framework 3.5 ..."
+Write-Host "Installing .NET Framework 3.5 ...";
 Add-WindowsFeature -Name NET-Framework-Core
