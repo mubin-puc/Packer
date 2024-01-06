@@ -1,0 +1,60 @@
+- name: Install Latest TightVNC
+  win_chocolatey:
+    name: tightvnc
+    install_args: "SET_USEVNCAUTHENTICATION=1 VALUE_OF_USEVNCAUTHENTICATION=1 SET_PASSWORD=1 VALUE_OF_PASSWORD={{vnc_password}}"
+
+- name: Download DFMirage Driver
+  ansible.windows.win_get_url:
+    url: https://artifactory.alteryx.com/artifactory/Runner_resources/guitest/dfmirage-setup-2.0.301.exe
+    dest: "{{ directories.software_loc }}/dfmirage-setup-2.0.301.exe"
+
+- name: Run the dfmirage-setup-2.0.301.exe with parameters
+  win_shell: "{{ directories.software_loc }}/dfmirage-setup-2.0.301.exe /VERYSILENT /NORESTART"
+  changed_when: false
+
+- name: Update autologon Username
+  win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+    name: DefaultUserName
+    data: "{{ autologon_user }}"
+
+- name: Update autologon Password
+  win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+    name: DefaultPassword
+    data: "{{ autologon_password }}"
+
+- name: Update AutoAdminLogon
+  win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+    name: AutoAdminLogon
+    data: "1"
+    
+- name: Update DontDisplayLastUserName
+  win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+    name: DontDisplayLastUserName
+    data: "0"
+
+- name: Set a no lock screen
+  win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization
+    name: NoLockScreen
+    data: 1
+    type: dword
+
+- name: Set a no lock screen
+  win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI
+    name: TestHooks
+    data: 1
+    type: dword
+
+# Removes the Network discovery screen
+- name: Change Network Discovery Registry
+  win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff
+
+- name: Reboot after software is installed
+  win_reboot: 
+  changed_when: false

@@ -1,0 +1,51 @@
+- name: Create startup.ps1
+  win_copy:
+    src: files/startup.ps1
+    dest: "{{ directories.software_loc }}/startup.ps1"
+
+- name: Create default_browser.ps1
+  win_copy:
+    src: files/default_browser.ps1
+    dest: "{{ directories.software_loc }}/default_browser.ps1"
+
+- name: instance Name
+  win_whoami:
+  register: instance_name
+
+- name: Run default_browser.ps1
+  # yamllint disable-line rule:line-length
+  win_shell: "psexec -accepteula \\\\{{instance_name.account.domain_name}} -s -i 1 -w C:/dependencies -u {{ autologon_user }} -p '{{autologon_password}}' -h cmd.exe /c 'echo .|powershell.exe -file C:/dependencies/default_browser.ps1'"
+  changed_when: false
+
+- name: Modify the ExecutionPolicy
+  # yamllint disable-line rule:line-length
+  win_shell: "Set-ExecutionPolicy Unrestricted -Scope LocalMachine -Force -ErrorAction Ignore"
+  changed_when: false
+
+- name: Create directory structure for startup script 
+  win_file:
+    path: C:\Users\{{ autologon_user }}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\
+    state: directory
+
+- name: Move the default_browser to select location
+  win_copy:
+    src: files/default_browser.ps1
+    dest: "C:/Users/{{ autologon_user }}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/default_browser.ps1"
+
+- name: Update Windows exploer to stop asking for default browser
+  win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer
+    name: NoNewAppAlert
+    data: 1
+    type: dword
+
+- name: Update windows error reporting
+  win_regedit:
+    path: HKCR:\Microsoft.PowerShellScript.1\Shell
+    name: 
+    data: 0
+    type: dword
+
+- name: Reboot after software is installed
+  win_reboot: 
+  changed_when: false

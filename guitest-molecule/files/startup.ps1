@@ -1,0 +1,1 @@
+Invoke-Expression -Command 'cmd.exe /c C:\Gitlab-Runner\gitlab-runner.exe run --working-directory "C:\\Gitlab-Runner\\" --config "C:\\Gitlab-Runner\\config.toml" --syslog'

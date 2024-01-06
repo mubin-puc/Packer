@@ -1,0 +1,104 @@
+---
+image: $CI_REGISTRY/docker-images/infratools:latest
+
+stages:
+- lint
+- prebuild
+- molecule-test
+- build
+- cleanup
+- version
+
+include:  # Includes a job to validate the yaml
+- project: devops/shared-gitlab-jobs
+  ref: master
+  file: /lint_jobs.yml
+include:
+- project: automation/gitlab-jobs
+  ref: v1.0
+  file: /versioning.yml
+
+variables:
+  VERSIONING_FILE: version.txt
+
+.version_check_act:
+  stage: lint
+  extends: .version_check
+  variables:
+    VERSIONING_MAINLINE_BRANCH: main
+
+packer_lint:
+  stage: lint
+  script:
+  - packer validate guitest.json
+  tags:
+  - linux-docker
+
+powershell_lint:
+  stage: lint
+  image: mcr.microsoft.com/powershell:7.1.0-ubuntu-18.04
+  before_script:
+  - pwsh -Command 'Install-Module PSScriptAnalyzer -Force -AllowClobber'
+  script:
+  # Powershell commands are super long so they don't fit in the line limit
+  # yamllint disable-line rule:line-length
+  - pwsh -Command 'Invoke-ScriptAnalyzer * -Recurse -Settings ./PSAnalyzerSettings.psd1 -EnableExit'
+  tags:
+  - linux-docker
+  allow_failure: true
+
+.build_ami:
+  stage: build
+  image: $CI_REGISTRY/docker-images/molecule:0.0.2
+  script:
+  # yamllint disable-line rule:line-length
+  - export AWS_MAX_ATTEMPTS=90
+  - export AWS_POLL_DELAY_SECONDS=60
+  - packer build 
+    -var "version=$(cat version.txt)"
+    -var "env=$([[ $CI_COMMIT_REF_SLUG == 'main' ]] && echo prod || echo dev)"
+    -color=false 
+    -timestamp-ui guitest.json  | tee output.log
+  tags:
+  - linux-docker
+  artifacts:
+    paths:
+    - output.log
+    expire_in: 2 weeks  # We keep this log for a bit for manual testing of ami
+
+molecule_test:
+  stage: molecule-test
+  image: $CI_REGISTRY/docker-images/molecule:0.0.2
+  script:
+    - export USER="Gitlab_$CI_PIPELINE_IID"
+    - cd guitest-molecule
+    - molecule test
+  tags:
+  - linux-docker
+
+build_branch_ami:
+  extends: .build_ami
+  when: manual
+  except:
+  - main
+
+build_master_ami:
+  extends: .build_ami
+  only:
+  - main
+
+cleanup_ami:
+  stage: cleanup
+  image: $CI_REGISTRY/docker-images/awstools:latest
+  script:
+  - export AMI_ID="$(grep "^us-west-2" output.log | cut -d ' ' -f 2)"
+  - aws ec2 deregister-image --image-id "$AMI_ID"
+  when: manual
+  tags:
+  - linux-docker
+
+.version_tags:
+  stage: version
+  extends: .version_git_tags
+  variables:
+    VERSIONING_MAINLINE_BRANCH: main

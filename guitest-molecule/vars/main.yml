@@ -1,0 +1,18 @@
+---
+# variables for guitest-molecule
+artifactory_url: "https://artifactory.alteryx.com"
+directories:
+  software_loc: "C:/dependencies"
+
+with_version_pkgs:
+  jfrog-cli: 1.50.0
+  7zip: 19.0.0
+
+include_paths:
+  - 'C:\dependencies\PSTools'
+
+autologon_user:  "{{ lookup('env', 'CurrentBld_svc_username') }}"
+vnc_password: "{{ lookup('env', 'TEDDY_PASSWORD') }}"
+
+look_var: "{{ lookup('amazon.aws.aws_secret', 'gitlab/CurrentBuildmgmt_svc/password') }}"
+autologon_password: "{{ look_var['gitlab/CurrentBuildmgmt_svc/password'] }}"

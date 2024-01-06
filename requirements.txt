@@ -1,0 +1,15 @@
+ansible
+docker
+molecule
+molecule-docker
+molecule[lint]
+pytest
+pytest-molecule
+pywinrm
+pytest-testinfra
+ansible-lint
+ansible-base 
+molecule-ec2
+boto
+boto3
+botocore

@@ -1,0 +1,17 @@
+---
+# tasks file for guitest-molecule
+# First step in the manual process: Install chrome
+- include_tasks: "{{ role_path }}/tasks/choco_source.yml"
+- include_tasks: "{{ role_path }}/tasks/packages.yml"
+- include_tasks: "{{ role_path }}/tasks/psexec.yml"
+
+# Second step in the manual process: set up vnc, then run verify
+- include_tasks: "{{ role_path }}/tasks/test_files.yml"
+- include_tasks: "{{ role_path }}/tasks/disable_wer.yml"
+- include_tasks: "{{ role_path }}/tasks/tightvnc.yml"
+- include_tasks: "{{ role_path }}/tasks/startup_script.yml"
+
+# Regular process: use the newly created ami when doing these tasks
+- include_tasks: "{{ role_path }}/tasks/opencover.yml"
+
+- include_tasks: "{{ role_path }}/tasks/disable_realtime_defender.yml"

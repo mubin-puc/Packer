@@ -1,0 +1,13 @@
+- name: Install OpenCover 4.7.922
+  win_chocolatey:
+    name: OpenCover
+    version: '4.7.922'
+    install_args: "DIR=C:/Users/{{ autologon_user }}"
+  become: yes
+  become_user: "{{ autologon_user }}"
+  become_method: runas
+
+- name: Add OpenCover to the Path
+  win_path: 
+    elements: "%USERPROFILE%\\AppData\\Local\\Apps\\OpenCover\\"
+

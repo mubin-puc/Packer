@@ -1,0 +1,30 @@
+- name: Connect chocolatey to artifactory
+  win_chocolatey_source:
+    name: alteryx
+    state: present
+    source: https://artifactory.alteryx.com/artifactory/api/nuget/chocolatey
+
+- name: Connect chocolatey to alteryx-nuget-development
+  win_chocolatey_source:
+    name: alteryx-nuget-development
+    state: present
+    source: https://artifactory.alteryx.com/artifactory/api/nuget/devops-chocolatey-nuget-development
+    priority: 10
+
+- name: Connect chocolatey to alteryx-nuget-mirror
+  win_chocolatey_source:
+    name: alteryx-nuget-mirror
+    state: present
+    source: https://artifactory.alteryx.com/artifactory/api/nuget/devops-chocolatey-nuget-mirror
+    priority: 5
+
+- name: connect chocolatey to alteryx-cache
+  win_chocolatey_source:
+    name: alteryx-cache
+    state: present
+    source: https://artifactory.alteryx.com/artifactory/api/nuget/chocolatey-remote
+
+- name: Remove default chocolatey repo
+  win_chocolatey_source:
+    state: absent
+    name: chocolatey

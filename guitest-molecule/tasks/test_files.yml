@@ -1,0 +1,10 @@
+# Create test file
+- name: Create test_wer.ps1 file
+  win_copy:
+    src: files/test_wer.ps1
+    dest: "{{ directories.software_loc }}/test_wer.ps1"
+    
+- name: Create chrome_test.ps1
+  win_copy:
+    src: files/chrome_test.ps1
+    dest: "{{ directories.software_loc }}/chrome_test.ps1"

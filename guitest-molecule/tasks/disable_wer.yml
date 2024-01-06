@@ -1,0 +1,13 @@
+- name: Update Windows error mode
+  win_regedit:
+    path: HKLM:\System\CurrentControlSet\Control\Windows
+    name: ErrorMode
+    data: 2
+    type: dword
+
+- name: Update windows error reporting
+  win_regedit:
+    path: HKLM:\Software\Microsoft\Windows\Windows Error Reporting
+    name: DontShowUI
+    data: 1
+    type: dword

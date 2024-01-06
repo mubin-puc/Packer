@@ -1,0 +1,82 @@
+{
+  "variables": {
+    "local_user": "{{ env `GOLD_ADMIN_USER` }}",
+    "local_password": "{{ env `GOLD_ADMIN_PASSWORD` }}",
+    "version": "{{ env `GOLD_VERSION` }}",
+    "env": "{{ env `GOLD_ENVIRONMENT` }}",
+    "branch": "{{ env `CI_COMMIT_REF_SLUG` }}",
+    "image_prefix": "Guitest-{{isotime \"2006_01_02_15_04\"}}",
+    "short_sha": "{{ env `CI_COMMIT_SHORT_SHA` }}",
+    "security_group": "{{ env `Currentbuild_Security_Group` }}",
+    "subnet": "{{ env `Currentbuild_Subnet` }}"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "ami_name": "{{ user `image_prefix`| clean_resource_name }}-{{isotime \"2006_01_02_15_04\"}}",
+      "instance_type": "t3.large",
+      "region": "us-west-2",
+      "communicator": "winrm",
+      "winrm_insecure": true,
+      "winrm_username": "Administrator",
+      "source_ami_filter": {
+        "filters": {
+          "name": "WinRunnerBase*",
+          "tag:environment": "prod"
+        },
+        "owners": [
+          "self"
+        ],
+        "most_recent": true
+      },
+      "subnet_id": "{{ user `subnet` }}",
+      "iam_instance_profile": "build-slaves",
+      "security_group_id": "{{ user `security_group` }}",
+      "user_data_file": "./userdata.ps1",
+      "run_tags": {
+        "environment": "{{ user `env` }}",
+        "department": "DevOps Current-Build Team",
+        "owner": "dg_currentbuilddevops@alteryx.com",
+        "project": "GuiTest Image Creation",
+        "Created-By": "Packer"
+      },
+      "tags": {
+        "environment": "{{ user `env` }}",
+        "department": "DevOps Current-Build Team",
+        "owner": "dg_currentbuilddevops@alteryx.com",
+        "version": "{{ user `version` }}",
+        "branch": "{{ user `branch` }}",
+        "os": "windows_2016",
+        "short_sha": "{{ user `short_sha` }}",
+        "driver_type": "GuiTest"
+      },
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/sda1",
+          "delete_on_termination": "true",
+          "volume_size": "100",
+          "throughput": "125",
+          "iops": 3000,
+          "volume_type": "gp3"
+        }
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "./guitest-molecule/molecule/default/converge.yml",
+      "use_proxy": false,
+      "user": "Administrator",
+      "ansible_env_vars": [
+        "WINRM_PASSWORD={{.WinRMPassword}}"
+      ]
+    },
+    {
+      "type": "powershell",
+      "inline": [
+        "C:/ProgramData/Amazon/EC2-Windows/Launch/Scripts/InitializeInstance.ps1 -Schedule"
+      ]
+    }
+  ]
+}

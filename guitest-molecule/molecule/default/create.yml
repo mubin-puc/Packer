@@ -1,0 +1,179 @@
+---
+# yamllint disable rule:line-length
+- name: Create
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  no_log: "{{ molecule_no_log }}"
+  vars:
+    winrm_user: "{{ lookup('env', 'GOLD_ADMIN_USER') }}"
+    winrm_password: "{{ lookup('env', 'GOLD_ADMIN_PASSWORD') }}"
+    vnc_password: "{{ lookup('env', 'TEDDY_PASSWORD') }}"
+    autologon_user:  "{{ lookup('env', 'CurrentBld_svc_username') }}"
+    artifactory_api_key: "{{ lookup('env', 'Artifactory_API_Key') }}"
+    ayx_core_token: "{{ lookup('env', 'TKN_DevOps_AYX_CORE_Clone') }}"
+    security_group: "{{ lookup('env', 'Currentbuild_Security_Group') }}"
+    subnet: "{{ lookup('env', 'Currentbuild_Subnet') }}"
+    winrm_port: 5985
+
+    key_pair_name: molecule_key
+    key_pair_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/ssh_key"
+  tasks:
+  - name: Check local environment variables for user
+    fail:
+      msg="GOLD_ADMIN_USER is not set"
+    when: winrm_user == "" or winrm_user is not defined
+
+  - name: Check local environment variables for password
+    fail:
+      msg="GOLD_ADMIN_PASSWORD is not set"
+    when: winrm_password == "" or winrm_password is not defined
+
+  - name: Check local environment variables for Teddy Password
+    fail:
+      msg="TEDDY_PASSWORD is not set"
+    when: vnc_password == "" or vnc_password is not defined
+
+  - name: Check local environment variables for autologon user
+    fail:
+      msg="CurrentBld_svc_username is not set"
+    when: autologon_user == "" or autologon_user is not defined
+    
+  - name: Check local environment variables for artifactory_api_key
+    fail:
+      msg="Artifactory_API_Key is not set"
+    when: artifactory_api_key == "" or artifactory_api_key is not defined
+    
+  - name: Check local environment variables for ayx_core_token
+    fail:
+      msg="TKN_DevOps_AYX_CORE_Clone is not set"
+    when: ayx_core_token == "" or ayx_core_token is not defined
+
+  - name: Check local environment variables for security group
+    fail:
+      msg="Currentbuild_Security_Group is not set"
+    when: security_group == "" or security_group is not defined
+
+  - name: Check local environment variables for subnet
+    fail:
+      msg="Currentbuild_Subnet is not set"
+    when: subnet == "" or subnet is not defined
+
+  - name: Find the vpc for the subnet
+    ec2_vpc_subnet_info:
+      subnet_ids: "{{ item.vpc_subnet_id }}"
+    loop: "{{ molecule_yml.platforms }}"
+    register: subnet_info
+
+  - name: Test for presence of local key pair
+    stat:
+      path: "{{ key_pair_path }}"
+    register: key_pair_local
+
+  - name: Delete remote key pair
+    ec2_key:
+      name: "{{ key_pair_name }}"
+      state: absent
+    when: not key_pair_local.stat.exists
+
+  - name: Create key pair
+    ec2_key:
+      name: "{{ key_pair_name }}"
+    register: key_pair
+    notify:
+    - Persist the key pair
+
+  - name: Get the ec2 ami(s) by owner, name, env, and version because image not set in molecule.yml
+    ec2_ami_info:
+      owners: "{{ item.image_owner }}"
+      filters:
+        name: "{{ item.image_name }}"
+        tag:environment: "{{ item.image_env }}"
+    loop: "{{ molecule_yml.platforms }}"
+    when: item.image is not defined
+    register: ami_info
+
+  # Leaving this because the ami_info output data structure changed while I was working on this
+  # - debug: msg="{{ ami_info }}"
+  #   when: ami_info is defined
+
+  - debug: msg="Found image {{ ami_info.results[0].images[-1].name }} with ID {{ ami_info.results[0].images[-1].image_id }}"
+    when: ami_info is defined
+
+  - name: Create molecule instance(s)
+    amazon.aws.ec2:
+      key_name: "{{ key_pair_name }}"
+      image: "{{ item.image
+        if item.image is defined
+        else ( ami_info.results[0].images[-1].image_id ) }}"
+      instance_type: "{{ item.instance_type }}"
+      vpc_subnet_id: "{{ item.vpc_subnet_id }}"
+      volumes: "{{ item.volumes }}"
+      region: "{{ item.aws_region }}"
+      group_id: "{{ item.group_id }}"
+      instance_tags: "{{ item.instance_tags | combine({'instance': item.name})
+        if item.instance_tags is defined
+        else {'instance': item.name} }}"
+      wait: true
+      wait_timeout: 500
+      assign_public_ip: false
+      exact_count: 1
+      count_tag:
+        instance: "{{ item.name }}"
+    register: server
+    loop: "{{ molecule_yml.platforms }}"
+    notify:
+    - Populate instance config dict
+    - Convert instance config dict to a list
+    - Dump instance config
+
+  - name: Flush handlers
+    meta: flush_handlers
+
+  - name: Wait for local instance config
+    wait_for:
+      path: "{{ molecule_instance_config }}"
+      state: present
+      timeout: 60
+      msg: Timeout waiting on "{{ molecule_instance_config }}"
+
+  - name: Wait for system to become reachable over WinRM
+    wait_for:
+      host: "{{ item.address }}"
+      port: "{{ winrm_port }}"
+      delay: 240
+    with_items: "{{ lookup('file', molecule_instance_config) | from_yaml }}"
+
+  handlers:
+  - name: Persist the key pair
+    copy:
+      dest: "{{ key_pair_path }}"
+      content: "{{ key_pair.key.private_key }}"
+      mode: 0600
+
+  # Mandatory configuration for Molecule to function.
+  - name: Populate instance config dict
+    set_fact:
+      instance_conf_dict: {
+        'instance_id': "{{ item.id }}",
+        'instance': "{{ item.tags.instance }}",
+        'region': "{{ item.region }}",
+        'address': "{{ item.private_ip }}",
+        'created_by': "{{ item.tags.user }}",
+        'user': "{{ winrm_user }}",
+        'port': "{{ winrm_port }}",
+        'identity_file': "{{ key_pair_path }}"}
+    loop: "{{ server.results[0].tagged_instances|flatten }}"
+    register: instance_config_dict
+
+  - name: Convert instance config dict to a list
+    set_fact:
+      instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
+
+  - name: Dump instance config
+    copy:
+      content: |
+        # Molecule managed
+        {{ instance_conf | to_json | from_json | to_yaml }}
+      dest: "{{ molecule_instance_config }}"
+      mode: 0600

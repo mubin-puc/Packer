@@ -1,0 +1,23 @@
+- name: Check if we installed psexec
+  win_stat:
+    path: "{{ directories.software_loc }}/PSTools.zip"
+  register: psexec_info
+
+- name: Check for and install psexec
+  block:
+  - name: Download known good version of psexec
+    ansible.windows.win_get_url:
+      url: "https://download.sysinternals.com/files/PSTools.zip"
+      dest: "{{ directories.software_loc }}/PSTools.zip"
+
+  - name: Unzip zip log
+    win_unzip:
+      src: "{{ directories.software_loc }}/PSTools.zip"
+      dest: "{{ directories.software_loc }}/PSTools"
+
+  - name: Ensure that the psexec paths exists in PATH
+    win_path:
+      elements:
+      - "{{ item }}"
+    loop: "{{ include_paths }}"
+  when: not psexec_info.stat.exists

@@ -1,0 +1,31 @@
+- name: Create Directory Structure
+  ansible.windows.win_file:
+    path: "{{ item.value }}"
+    state: directory
+  loop: "{{ directories | dict2items }}"
+
+- name: Install packages with versions
+  win_chocolatey:
+    name: "{{ item.key }}"
+    version: "{{ item.value }}"
+  loop: "{{ with_version_pkgs | dict2items }}"
+
+- name: Install Google Chrome
+  win_package:
+    path: "https://dl.google.com/edgedl/chrome/install/GoogleChromeStandaloneEnterprise64.msi"
+    product_id: "{32490FC2-5E1B-3CB2-9D0C-3FA41E9439E9}"
+    state: present
+
+- name: Wait for chrome exe to exist before continuing
+  win_wait_for:
+    path: C:\PROGRA~1\Google\Chrome\Application\chrome.exe
+
+- name: Remove Iexplore
+  win_shell: Disable-WindowsOptionalFeature -FeatureName Internet-Explorer-Optional-amd64 –Online -NoRestart
+  changed_when: false
+
+# We shouldn't do this. The right solution is to remove this dependency by updating our Nunit version
+- name: Install .NET 3.5 Framework
+  win_feature:
+    name: NET-Framework-Core
+    state: present

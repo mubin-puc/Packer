@@ -1,0 +1,47 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: ec2
+
+platforms:
+- name: Guitest_$USER
+  instance_type: t3a.medium
+  # AWS Account ID for old root
+  # This is the current image used in production
+  image_owner: 123013724769
+  image_name: WinRunnerBase*
+  image_env: prod
+  image_version: latest
+  aws_region: us-west-2
+  vpc_subnet_id: $Currentbuild_Subnet
+  assign_public_ip: false
+  # Security group identifers
+  group_id: $Currentbuild_Security_Group
+  # group: allTrafficfromAlteryx
+  connection_options:
+    ansible_shell_type: powershell
+    sudo: false
+    ansible_user: $GOLD_ADMIN_USER
+    ansible_password: "$GOLD_ADMIN_PASSWORD"
+    ansible_port: 5985
+    ansible_connection: winrm
+    ansible_winrm_scheme: http
+    ansible_winrm_server_cert_validation: ignore
+  instance_tags:
+    user: $USER
+    Name: Guitest_$USER
+    molecule: true
+    expiration: 2h
+  volumes:
+  - device_name: /dev/sda1
+    volume_size: 100
+
+provisioner:
+  name: ansible
+  log: true
+
+verifier:
+  name: testinfra
+  options:
+    pdb: false  # Activate pdb debugger on testinfra failure

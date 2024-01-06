@@ -1,0 +1,27 @@
+---
+# yamllint disable rule:line-length
+# This is an example playbook to execute Ansible tests.
+
+- name: Verify
+  hosts: all
+  gather_facts: true
+  tasks:
+
+- name: Print the package facts
+  debug:
+    var: ansible_facts
+
+- name: OS checks
+  assert:
+    that:
+    - ansible_facts.distribution == 'Microsoft Windows Server 2016 Datacenter'
+    - ansible_facts.distribution_version is match("10.*")
+    success_msg: "OS Checks Pass"
+    fail_msg: "OS Checks Failed"
+
+- name: python version check
+  assert:
+    that:
+      ansible_facts.python_version >= '3.8.5'
+    success_msg: "python is an acceptable version at {{ ansible_facts.python_version }}"
+    fail_msg: "update python to a version at or higher than 3.8.5 Current version: {{ ansible_facts.python_version }}"
