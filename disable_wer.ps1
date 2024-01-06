@@ -1,0 +1,2 @@
+Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Windows" -Name "ErrorMode" -Value 2 -Type DWord
+Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\Windows Error Reporting" -Name "DontShowUI" -Value 1 -Type DWord
