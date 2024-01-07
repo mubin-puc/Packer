@@ -80,44 +80,45 @@ source "azure-arm" "win2016_compile_image" {
   winrm_username = "packer"
 }
 
+
 build {
   sources = ["source.azure-arm.win2016_compile_image"]
   
 
   provisioner "powershell" {
-    script = "./Packer/Scripts/install_packages.ps1"
+    script = "./Scripts/install_packages.ps1"
   }
 
   provisioner "powershell" {
-    script = "./Packer/Scripts/install_psexec.ps1"
+    script = "./Scripts/install_psexec.ps1"
   }
 
   provisioner "powershell" {
-    script = "./Packer/Scripts/copy_testfiles.ps1"
+    script = "./Scripts/copy_testfiles.ps1"
   }
 
   provisioner "powershell" {
-    script = "./Packer/Scripts/disable_wer.ps1"
+    script = "./Scripts/disable_wer.ps1"
   }
 
   provisioner "powershell" {
-    script = "./Packer/Scripts/tightvnc.ps1"
+    script = "./Scripts/tightvnc.ps1"
   }
 
   provisioner "powershell" {
-    script = "./Packer/Scripts/tightvnc.ps1"
+    script = "./Scripts/tightvnc.ps1"
   }
 
    provisioner "powershell" {
-    script = "./Packer/Scripts/startup_script.ps1"
+    script = "./Scripts/startup_script.ps1"
   }
 
     provisioner "powershell" {
-    script = "./Packer/Scripts/opencover.ps1"
+    script = "./Scripts/opencover.ps1"
   }
 
    provisioner "powershell" {
-    script = "./Packer/Scripts/disable_realtime_defender.ps1"
+    script = "./Scripts/disable_realtime_defender.ps1"
   }
 
   provisioner "powershell" {
