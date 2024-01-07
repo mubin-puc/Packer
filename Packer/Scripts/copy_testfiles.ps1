@@ -1,5 +1,5 @@
 # Define the source folder and destination folder
-$sourceFolder = "files"
+$sourceFolder = "../Files"
 $destinationFolder = "C:/dependencies"
 
 # Check if the source folder exists

@@ -8,10 +8,10 @@ Invoke-WebRequest -Uri "https://artifactory.alteryx.com/artifactory/Runner_resou
 Start-Process "C:/dependencies/dfmirage-setup-2.0.301.exe" -ArgumentList "/VERYSILENT /NORESTART"
 
 # Update autologon Username
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "DefaultUserName" -Value $env:CurrentBld_svc_username
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "DefaultUserName" -Value $env:autologon_user
 
 # Update autologon Password
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "DefaultPassword" -Value $env:TEDDY_PASSWORD
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "DefaultPassword" -Value $env:autologon_password
 
 # Update AutoAdminLogon
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "AutoAdminLogon" -Value "1"
@@ -29,4 +29,6 @@ Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authenti
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Network" -Name "NewNetworkWindowOff" -Value 1
 
 # Reboot after software is installed
-Restart-Computer
+Write-Host "Reboot after software is installed ..."
+Start-Sleep -Seconds 30
+Restart-Computer -Force
