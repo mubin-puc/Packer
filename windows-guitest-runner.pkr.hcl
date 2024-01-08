@@ -22,6 +22,21 @@ variable "tenant_id" {
   default = env("AZURE_TENANT_ID")
 }
 
+variable "TEDDY_PASSWORD" {
+  description = "Password for VNC"
+  default = "abcd@12345aa"
+}
+
+variable "autologon_user" {
+  description = "Username for VNC autologon"
+  default = "admin"
+}
+
+variable "autologon_password" {
+  description = "Password for Autologon Password"
+  default = "admin@12345aa"
+}
+
 variable "resource_group_name" {
   description = "Azure Resource Group Name"
   default = "rg-gitlab-ayx-core-prod"
@@ -80,45 +95,49 @@ source "azure-arm" "win2016_compile_image" {
   winrm_username = "packer"
 }
 
-
 build {
   sources = ["source.azure-arm.win2016_compile_image"]
   
 
   provisioner "powershell" {
-    script = "./Scripts/install_packages.ps1"
+    script = "./Packer/Scripts/install_packages.ps1"
   }
 
   provisioner "powershell" {
-    script = "./Scripts/install_psexec.ps1"
+    script = "./Packer/Scripts/install_psexec.ps1"
   }
 
   provisioner "powershell" {
-    script = "./Scripts/copy_testfiles.ps1"
+    script = "./Packer/Scripts/copy_testfiles.ps1"
   }
 
   provisioner "powershell" {
-    script = "./Scripts/disable_wer.ps1"
+    script = "./Packer/Scripts/disable_wer.ps1"
   }
 
   provisioner "powershell" {
-    script = "./Scripts/tightvnc.ps1"
-  }
-
-  provisioner "powershell" {
-    script = "./Scripts/tightvnc.ps1"
+  environment_vars = [
+        "TEDDY_PASSWORD=${var.TEDDY_PASSWORD}",
+        "autologon_user=${var.autologon_user}",
+        "autologon_password=${var.autologon_password}",
+    ]
+    script = "./Packer/Scripts/tightvnc.ps1"
   }
 
    provisioner "powershell" {
-    script = "./Scripts/startup_script.ps1"
+    environment_vars = [
+        "autologon_user=${var.autologon_user}",
+        "autologon_password=${var.autologon_password}",
+    ]
+    script = "./Packer/Scripts/startup_script.ps1"
   }
 
     provisioner "powershell" {
-    script = "./Scripts/opencover.ps1"
+    script = "./Packer/Scripts/opencover.ps1"
   }
 
    provisioner "powershell" {
-    script = "./Scripts/disable_realtime_defender.ps1"
+    script = "./Packer/Scripts/disable_realtime_defender.ps1"
   }
 
   provisioner "powershell" {
